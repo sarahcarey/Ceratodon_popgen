@@ -6,80 +6,56 @@
 library(ggplot2)
 #v3.3.1
 
-################### dS plot ###################
+####### Fig. 1, Isolate map #######
 
-dn_vs_ds <- read.csv("Data/ceratodon_ds_dn_july2019.csv",header=TRUE)
+library("ggmap")
+#v3.0.0
+library("maptools")
+#v0.9-9
+library("maps")
+#v3.3.0
+
+map_data <- read.csv("Data/Ceratodon_reseq_locations.csv", header=TRUE)
+
+reseq.lon <- c(map_data$longitude[1:5])
+reseq.lat <- c(map_data$latitude[1:5])
+chile.lon <- map_data$longitude[6]
+chile.lat <- map_data$latitude[6]
+SH.lon <- map_data$longitude[7:9]
+SH.lat <- map_data$latitude[7:9]
+r40.lon <- map_data$longitude[10]
+r40.lat <- map_data$latitude[10]
+gg1.lon <- map_data$longitude[11]
+gg1.lat <- map_data$latitude[11]
 
 
-png("Figures/ds_Oct2020.png", width = 8, height = 8, units = 'in', res = 300)
+world <- map_data("world")
 
-stat_box_data <- function(x, upper_limit = 1.05) {
-  return( 
-    data.frame(
-      y = 0.9 * upper_limit,
-      label = paste(format(round(mean(x), 3), big.mark = ",", decimal.mark = ".", scientific = FALSE))
-    )
-  )
-}
 
-b <- ggplot(dn_vs_ds, (aes(x = Sex, y = dS, fill=Sex))) +
-  geom_boxplot(color=c("gray0", "gray50"), fill="white", alpha=0, lwd=2)
-b  + scale_fill_manual(values=c("peru", "midnightblue")) +
-  xlab("") +
-  ylab("dS") +
-  theme(axis.title.x = element_text(size=30)) +
-  theme(axis.title.y = element_text(size=30))+
-  theme(axis.text.x = element_text(size=20),
-        axis.text.y = element_text(size=20)) +
-  geom_point(position=position_jitterdodge(jitter.width = 0.75, jitter.height = 0), 
-             aes(group=Sex), alpha=0.75, shape=19, size=2, colour="gray25") +
-  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.000001, cex=10) + 
-  guides(fill=FALSE) + 
-  theme(axis.text.x= element_text(size=30))
+png("Figures/ceratodon_isolate_map.png", width = 6, height = 4, units = 'in', res = 300)
 
-dev.off()
+mp <- NULL
+mapWorld <- borders("world", colour="gray75", fill="gray95") # create a layer of borders
+mp <- ggplot() +  mapWorld
 
-# test for signifcant differences
-wilcox.test(dn_vs_ds$dS ~ dn_vs_ds$Sex)
 
-################### dN plot ###################
+mp <- mp+ geom_point(aes(x=reseq.lon+1, y=reseq.lat+1), color="black",
+                     size=5, shape=21, fill="black", alpha=0.8) 
 
-dn_vs_ds <- read.csv("Data/ceratodon_ds_dn_july2019.csv",header=TRUE)
+mp <- mp+ geom_point(aes(x=chile.lon+1, y=chile.lat-1), color="black",
+                     size=5, shape=24, fill="black", alpha=0.8) 
 
-png("Figures/dn_Oct2020.png", width = 8, height = 8, units = 'in', res = 300)
+mp <- mp+ geom_point(aes(x=SH.lon, y=SH.lat), color="black",
+                     size=5, shape=22, fill="black", alpha=0.8)
 
-stat_box_data <- function(x, upper_limit = 0.4) {
-  return( 
-    data.frame(
-      y = 1 * upper_limit,
-      label = paste(format(round(mean(x), 3), big.mark = ",", decimal.mark = ".", scientific = FALSE))
-    )
-  )
-}
-
-b <- ggplot(dn_vs_ds, (aes(x = Sex, y = dN, fill=Sex))) +
-  geom_boxplot(color=c("gray0", "gray50"), fill="white", alpha=0, lwd=2)
-b  + scale_fill_manual(values=c("peru", "midnightblue")) +
-  xlab("") +
-  ylab("dN") +
-  theme(axis.title.x = element_text(size=30)) +
-  theme(axis.title.y = element_text(size=30))+
-  theme(axis.text.x = element_text(size=20),
-        axis.text.y = element_text(size=20)) +
-  geom_point(position=position_jitterdodge(jitter.width = 0.75, jitter.height = 0), 
-             aes(group=Sex), alpha=0.75, shape=19, size=2, colour="gray25") +
-  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.000001, cex=10) + 
-  guides(fill=FALSE) + 
-  theme(axis.text.x= element_text(size=30))
+mp + coord_fixed(ratio = 1.3) + 
+  theme(plot.background = element_rect(fill = "white"), panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), panel.background = element_blank())
 
 dev.off()
-
-# test for signifcant differences
-wilcox.test(dn_vs_ds$dS ~ dn_vs_ds$Sex)
 
 ################### Population genetics analyses ###################
 
-################### Nucleotide diversity ###################
 
 library(PopGenome)
 #v2.7.5
@@ -228,7 +204,8 @@ FST
 
 ################### Sliding window analyses ###################
 
-################### Neutrality tests ###################
+library(PopGenome)
+#v2.7.5
 
 ###################  Autosomes ################### 
 for (i in 1:12) {
@@ -486,7 +463,7 @@ regions_cleaned <- subset(regions_chr, select=-c(X2,X4))
 write.table(regions_cleaned, "Fst.male.V.txt", col.names=FALSE, sep=",")
 
 
-#################### Sliding window plot ####################
+#################### Fig. 3, Sliding window plot ####################
 
 library(karyoploteR)
 #v1.8.8
@@ -497,42 +474,53 @@ popgen_data <- read.csv("Data/ceratodon_popgen_Oct29.csv", header=TRUE)
 popgen.GR <- toGRanges(data.frame(chr=popgen_data$Chromosome, start=popgen_data$Start, end=popgen_data$Stop))
 custom.genome <- toGRanges(data.frame(chr=r40$Chromosome, start=r40$ChromStart, end=r40$ChromEnd))
 
-png("Figures/neutrality_windows_Oct30.png", width = 9, height = 6, units = 'in', res = 300)
+png("Figures/neutrality_windows_22March2021.png", width = 12, height = 6, units = 'in', res = 300)
 
-kp <- plotKaryotype(genome=custom.genome,pin=8, plot.type = 4,labels.plotter = NULL)
+pp <- getDefaultPlotParams(plot.type = 4)
+pp$ideogramlateralmargin <- 0.01
+pp$leftmargin <- 0.08
+pp$bottommargin <- 40
 
-kpAddBaseNumbers(kp, tick.dist = 10000000, tick.len = 5, tick.col="black", cex=0.5,
+
+kp <- plotKaryotype(genome=custom.genome,pin=8, plot.type = 4,labels.plotter = NULL, plot.params=pp)
+
+kpAddBaseNumbers(kp, tick.dist = 10000000, tick.len = 5, tick.col="black", cex=0.75,
                  minor.tick.dist = 5000000, minor.tick.len = 5, minor.tick.col = "black", add.units = F)
 kp <- kpDataBackground(kp, data.panel = 1, color="gray95")
+kpAddChromosomeNames(kp,font=2, xoffset=-3, srt=45)
+kpAddLabels(kp, "A", r0=0.98, label.margin=0.05,font=2, cex=1.5)
+kpAddLabels(kp, "B", r0=0.4, label.margin=0.05,font=2, cex=1.5)
+kpAddLabels(kp, "C", r0=-0.1, label.margin=0.05,font=2, cex=1.5)
+kpAddLabels(kp, "D", r0=-0.6, label.margin=0.05,font=2, cex=1.5)
+
 
 kp <-kpPlotLoess(kp, data=popgen.GR, data.panel = 1, col=("gray0"), y=popgen_data$thetaW,
                  ymin=0, ymax=0.02, span=0.03, r0=0.75, r1=0.99)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("0","0.01","0.02"), r0=0.75, r1=0.99, side=1)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("0","0.01","0.02"), r0=0.75, r1=0.99, side=2)
 kp <-kpPlotLoess(kp, data=popgen.GR, data.panel = 1, col=("gray20"), y=popgen_data$thetaPi,
                  ymin=0, ymax=0.02, span=0.03, r0=0.5, r1=0.7)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("0","0.01","0.02"), r0=0.5, r1=0.7, side=1)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("0","0.01","0.02"), r0=0.5, r1=0.7, side=2)
 kp <-kpPlotLoess(kp, data=popgen.GR, data.panel = 1, col=("gray40"), y=popgen_data$tajimaD,
                  ymin=-2, ymax=2, span=0.03, r0=0.25, r1=0.45)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("-2","0","2"), r0=0.25, r1=0.45, side=1)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("-2","0","2"), r0=0.25, r1=0.45, side=2)
 kp <-kpPlotLoess(kp, data=popgen.GR, data.panel = 1, col=("gray60"), y=popgen_data$Fst,
                  ymin=0, ymax=0.75, span=0.03, r0=0, r1=0.2)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("0","0.375","0.75"), r0=0, r1=0.2, side=1)
-kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=0.5, numticks=3, 
+kpAxis(kp, ymax=kp$latest.plot$computed.values$max.density, cex=1, numticks=3, 
        labels=c("0","0.375","0.75"), r0=0, r1=0.2, side=2)
 
 dev.off()
 
-# some additional asthesics done in Inkscape (adding chromosome numbers, metrics to y-axis)
 
 ####################### Testing significant differences between U, V, ####################### 
 ### and autos by random sampling of sliding windows (i.e., bootstrapping)
@@ -701,6 +689,9 @@ right
 
 ################## McDonald Krietman Test ##################
 
+library(PopGenome)
+#v2.7.5
+
 ################## Autosomes MKT ##################
 
 ## autosomes 1-9
@@ -865,13 +856,14 @@ MKT_gene_names <- cbind(get.MKT(genes),gene_names)
 write.csv(MKT_gene_names, "MKTtest.V.csv", append=TRUE)
 
 
-################## DoS plot ##################
+################## Fig. 4A, DoS plot ##################
 
 library(ggplot2)
+#v3.3.1
 
 dos_data <- read.csv("Data/ceratodon_MKT_sig.csv", header=TRUE)
 
-png("Figures/DoS_Oct2020.png", width = 8, height = 8, units = 'in', res = 300)
+png("Figures/DoS_22March2021.png", width = 8, height = 8, units = 'in', res = 300)
 
 b <- ggplot(dos_data, (aes(x = Chromosome, y = DoS, fill=Chromosome))) +
   geom_boxplot(color=c("gray65","gray0", "gray50"), fill="white", alpha=0, lwd=2)
@@ -879,13 +871,94 @@ b  + scale_fill_manual(values=c("peru", "midnightblue","black")) +
   geom_abline(intercept = 0, slope = 0, lwd=2) +
   xlab("") +
   ylab("DoS") +
-  theme(axis.title.x = element_text(size=30)) +
-  theme(axis.title.y = element_text(size=30))+
+  theme(axis.title.x = element_text(size=35)) +
+  theme(axis.title.y = element_text(size=35))+
   theme(axis.text.x = element_text(size=30),
-        axis.text.y = element_text(size=20)) +
+        axis.text.y = element_text(size=30)) +
   geom_point(position=position_jitterdodge(jitter.width = 0.75, jitter.height = 0), 
              aes(group=Chromosome), alpha=0.75, shape=19, size=2, colour="gray25") + 
   theme(legend.position="none")
  
 dev.off()
+
+################### Fig. 4B, dN plot ###################
+
+dn_vs_ds <- read.csv("Data/ceratodon_ds_dn_july2019.csv",header=TRUE)
+
+png("Figures/dn_22March2021.png", width = 8, height = 8, units = 'in', res = 300)
+
+stat_box_data <- function(x, upper_limit = 0.4) {
+  return( 
+    data.frame(
+      y = upper_limit,
+      label = paste(format(round(mean(x), 3), big.mark = ",", decimal.mark = ".", scientific = FALSE))
+    )
+  )
+}
+
+b <- ggplot(dn_vs_ds, (aes(x = Sex, y = dN, fill=Sex))) +
+  geom_boxplot(color=c("gray0", "gray50"), fill="white", alpha=0, lwd=2)
+b  + scale_fill_manual(values=c("peru", "midnightblue")) +
+  xlab("") +
+  ylab("dN") +
+  theme(axis.title.x = element_text(size=35)) +
+  theme(axis.title.y = element_text(size=35))+
+  theme(axis.text.x = element_text(size=30),
+        axis.text.y = element_text(size=30)) +
+  geom_point(position=position_jitterdodge(jitter.width = 0.75, jitter.height = 0), 
+             aes(group=Sex), alpha=0.75, shape=19, size=2, colour="gray25") +
+  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.000001, cex=12) + 
+  guides(fill=FALSE) + 
+  theme(axis.text.x= element_text(size=35)) +
+  ylim(c(0,0.41))
+
+dev.off()
+
+# test for signifcant differences
+wilcox.test(dn_vs_ds$dS ~ dn_vs_ds$Sex)
+
+
+################### Fig. 4C, dS plot ###################
+
+dn_vs_ds <- read.csv("Data/ceratodon_ds_dn_july2019.csv",header=TRUE)
+
+
+png("Figures/ds_22March2021.png", width = 8, height = 8, units = 'in', res = 300)
+
+stat_box_data <- function(x, upper_limit = 1.05) {
+  return( 
+    data.frame(
+      y = upper_limit,
+      label = paste(format(round(mean(x), 3), big.mark = ",", decimal.mark = ".", scientific = FALSE))
+    )
+  )
+}
+
+b <- ggplot(dn_vs_ds, (aes(x = Sex, y = dS, fill=Sex))) +
+  geom_boxplot(color=c("gray0", "gray50"), fill="white", alpha=0, lwd=2)
+b  + scale_fill_manual(values=c("peru", "midnightblue")) +
+  xlab("") +
+  ylab("dS") +
+  theme(axis.title.x = element_text(size=35)) +
+  theme(axis.title.y = element_text(size=35))+
+  theme(axis.text.x = element_text(size=30),
+        axis.text.y = element_text(size=30)) +
+  geom_point(position=position_jitterdodge(jitter.width = 0.75, jitter.height = 0), 
+             aes(group=Sex), alpha=0.75, shape=19, size=2, colour="gray25") +
+  stat_summary(fun.data = stat_box_data, geom = "text", hjust = 0.5, vjust = 0.000001, cex=12) + 
+  guides(fill=FALSE) + 
+  theme(axis.text.x= element_text(size=35)) +
+  ylim(c(0,1.07))
+
+dev.off()
+
+# test for signifcant differences
+wilcox.test(dn_vs_ds$dS ~ dn_vs_ds$Sex)
+
+
+
+
+
+
+
 
